@@ -24,7 +24,7 @@
 	}         
 %>
 	
-  <%= fileIndex %> datasets currently in the database;
+  <%= fileIndex %> datasets currently in the database.
 
   <form action="/generate" method="get">
   	Choose how many random datasets to generate (max. 100): 

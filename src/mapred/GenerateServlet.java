@@ -50,7 +50,7 @@ public class GenerateServlet extends HttpServlet {
     	Gson gson = new Gson();
         Integer number = 0;
         
-        // get the number of new data sets to create in the DB
+        // retrieve the number of new data sets to create in the DB
         try {
         	number = Integer.valueOf(req.getParameter("number"));
         } catch (NumberFormatException e) {}

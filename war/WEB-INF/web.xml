@@ -10,15 +10,40 @@
     <servlet-name>generateServlet</servlet-name>
     <servlet-class>mapred.GenerateServlet</servlet-class>
   </servlet>
-  
   <servlet-mapping>
     <servlet-name>generateServlet</servlet-name>
     <url-pattern>/generate</url-pattern>
   </servlet-mapping>
+  <servlet>
+    <servlet-name>mapServlet</servlet-name>
+    <servlet-class>mapred.MapServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>mapServlet</servlet-name>
+    <url-pattern>/lookup</url-pattern>
+  </servlet-mapping>
+  <!-- this serves the background tasks -->
+  <servlet>
+    <servlet-name>vartaskServlet</servlet-name>
+    <servlet-class>mapred.TaskServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>vartaskServlet</servlet-name>
+    <url-pattern>/vartask</url-pattern>
+  </servlet-mapping>
+  <!-- REST Api call to retrieve task status and result values  -->
+  <servlet>
+    <servlet-name>lookupServlet</servlet-name>
+    <servlet-class>mapred.LookupServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>lookupServlet</servlet-name>
+    <url-pattern>/vardata</url-pattern>
+  </servlet-mapping>
   
   <!-- Default page to serve -->
   <welcome-file-list>
-    <welcome-file>Sefaira.html</welcome-file>
+    <welcome-file>lookup.jsp</welcome-file>
   </welcome-file-list>
 
 </web-app>
