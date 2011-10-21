@@ -12,8 +12,8 @@ import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;	
 import java.lang.Float;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +28,13 @@ import net.sf.jsr107cache.CacheException;
 import net.sf.jsr107cache.CacheFactory;
 import net.sf.jsr107cache.CacheManager;
 
+/**
+ * @author Stefan Wehner (2011)
+ *
+ * Background task loads batches of data in the given index range.
+ * It extracts the variables in question and stores them in 
+ * memcache. 
+ */
 public class TaskServlet extends HttpServlet {
     private static final Logger log = Logger.getLogger(TaskServlet.class.getName());
    
@@ -44,6 +51,7 @@ public class TaskServlet extends HttpServlet {
             CacheFactory cacheFactory = CacheManager.getInstance().getCacheFactory();
             cache = cacheFactory.createCache(Collections.emptyMap());
             cache.put(taskname, "RUNNING");
+            cache.put(taskname+"_time", (Float) ((System.currentTimeMillis()-start_time)/1000.0F));
         } catch (CacheException e) {
             log.severe("Failed to access memcache");
             return;
@@ -63,34 +71,43 @@ public class TaskServlet extends HttpServlet {
     	// collect keys in a list for a batch get
     	List<Key> keys = new LinkedList<Key>();
     	Text textdata;
+    	// will contain the JSON decoded representation of an entities data block
     	Map<String,Float> varmap;
+    	// will contain a batch result from the datastore
     	Map<Key,Entity> datamap;
+    	// use this list to store data in the cache
+        List<List> cachedata = new LinkedList<List>();
     	// needed to parse json data
 		Type mapType = new TypeToken<Map<String,Float>>() {}.getType();
-		// used to store vars in memcache
-		Map<String,Float> reduced_var_map = new HashMap<String,Float>();
+		// counts the number of batches we retrieve form the datastore and then place in a cache 
+		int batches_counter = 0;
     	for (int findex = startIndex; findex <= endIndex; findex++) {
     		keys.add(KeyFactory.createKey(counterKey, "jsondata", findex));
-    		if ( (findex % 10) == 0 || findex == endIndex) {
+    		if ( (findex % 30) == 0 || findex == endIndex) {
+    			batches_counter++;
     			datamap = datastore.get(keys);
+                cache.put(taskname+"_time", (Float) ((System.currentTimeMillis()-start_time)/1000.0F));
+                // retrieve all entries from the datamap
     			for (Map.Entry<Key,Entity> entry : datamap.entrySet()) {
 	    			textdata = (Text) entry.getValue().getProperty("data");
 	    			varmap = gson.fromJson(textdata.getValue(), mapType);
-	    			// store vars in memcache with the file index as memcache key
-	    			reduced_var_map.put(var1, varmap.get(var1));
-	    			reduced_var_map.put(var2, varmap.get(var2));
-	    			// log.info("file"+entry.getKey().getId()+" var1: "+ reduced_var_map.get(var1) + " var2: " + reduced_var_map.get(var2));
-	    			cache.put("file"+entry.getKey().getId(), reduced_var_map);
+	    			List<Float> pair = new ArrayList<Float>(2);
+	    			pair.add(0, varmap.get(var1));
+	    			pair.add(1, varmap.get(var2));
+	    			cachedata.add(pair);
 	    		}
+    			// store the data portion in cache.
+    			cache.put(taskname+"_cache_"+batches_counter, cachedata);
+    			log.info("Stored "+cachedata.size()+" value pairs in cache: "+taskname+"_cache_"+batches_counter);
         		keys.clear();
+        		cachedata.clear();
     		}
     	}
 
 		// update status in memcache
         cache.put(taskname, "FINISHED");
-        long end_time = System.currentTimeMillis();
-        cache.put(taskname+"_time", (Float) ((end_time-start_time)/1000.0F));
+        cache.put(taskname+"_time", (Float) ((System.currentTimeMillis()-start_time)/1000.0F));
         
-		log.info("Task " + req.getHeader("X-AppEngine-TaskName") + " has FINISHED after "+(end_time-start_time)/1000.0+" s");
+		log.info("Task " + req.getHeader("X-AppEngine-TaskName") + " looked up datasets from "+startIndex+" to "+endIndex+" and FINISHED after "+(System.currentTimeMillis()-start_time)/1000.0+" s");
     }
 }

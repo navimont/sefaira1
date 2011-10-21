@@ -10,7 +10,7 @@
   <body>
 
     <h1>Generate random data sets</h1>
-    <p>Each dataset will be stored in JSON format and contain 300 variables and their values. Variables are named "VAR000".."VAR200". Values are random and lay between -50.0 and 50.0</p>   
+    <p>Each dataset will be stored in JSON format and contain 300 variables and their values. Variables are named "VAR000".."VAR299". Values are random and lay between -50.0 and 50.0</p>   
 <%
     DatastoreService datastore =  DatastoreServiceFactory.getDatastoreService();
 	Entity counter;
@@ -24,10 +24,11 @@
 	}         
 %>
 	
-  <%= fileIndex %> datasets currently in the database.
+  <p><%= fileIndex %> datasets currently in the database.</p>
+  <p>Click here to <a href="/">visualize your data.</a></p>
 
   <form action="/generate" method="get">
-  	Choose how many random datasets to generate (max. 100): 
+  	Choose how many random datasets to generate (max. 500; negative numbers delete datasets): 
     <div><input type="text" name="number"/></div>
     <div><input type="submit" value="Generate..." /></div>
   </form>

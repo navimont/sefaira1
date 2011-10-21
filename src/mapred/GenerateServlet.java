@@ -29,6 +29,13 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+/**
+ * @author Stefan Wehner (2011)
+ *
+ * Generate datasets with random test data. A counter entity
+ * is kept in the datastore and updated in a transaction with the
+ * new or deleted data sets. 
+ */
 public class GenerateServlet extends HttpServlet {
     private static final Logger log =
             Logger.getLogger(GenerateServlet.class.getName());
@@ -55,7 +62,8 @@ public class GenerateServlet extends HttpServlet {
         	number = Integer.valueOf(req.getParameter("number"));
         } catch (NumberFormatException e) {}
         // not more than 100 at a time
-        number = number > 100 ? 100 : number;
+        number = number > 500 ? 500 : number;
+        number = number < -500 ? -500 : number;
         
         // read current number of entities in datastore
         DatastoreService datastore =  DatastoreServiceFactory.getDatastoreService();
@@ -69,7 +77,7 @@ public class GenerateServlet extends HttpServlet {
     		fileIndex = 0L;
     	}         
                 
-        if (number > 0) {
+        if (number != 0) {
             Transaction txn = datastore.beginTransaction();
             
         	try {
@@ -83,21 +91,37 @@ public class GenerateServlet extends HttpServlet {
             		fileIndex = 0L;
             	}
             	
-            	while (number > 0) {	        	
-    		        fileIndex++;
-    		        number--;
-            		// counter is a parent, needed for write in transaction. The file index is part of the key
-            		Key jsondataKey = KeyFactory.createKey(counterKey, "jsondata", fileIndex);
-    		        Entity jsondata = new Entity(jsondataKey);
-    		        // generate a json dataset with key-value pairs
-    		        Text jsontext = new Text(gson.toJson(generateData(300)));
-    		        jsondata.setProperty("data", jsontext);
-    		        jsondataList.add(jsondata);
+            	if (number > 0) {
+            		// create new datasets
+	            	while (number > 0) {	        	
+	    		        fileIndex++;
+	    		        number--;
+	            		// counter is a parent, needed for write in transaction. The file index is part of the key
+	            		Key jsondataKey = KeyFactory.createKey(counterKey, "jsondata", fileIndex);
+	    		        Entity jsondata = new Entity(jsondataKey);
+	    		        // generate a json dataset with key-value pairs
+	    		        Text jsontext = new Text(gson.toJson(generateData(300)));
+	    		        jsondata.setProperty("data", jsontext);
+	    		        jsondataList.add(jsondata);
+	            	}
+	                counter.setUnindexedProperty("total_files", fileIndex);
+	                log.info(jsondataList.size() + " datasets ready for commit. Last file index is " + fileIndex);
+	            	datastore.put(counter);
+	                datastore.put(jsondataList);
+            	} else {
+            		// delete data
+                	List<Key> keys = new LinkedList<Key>();
+	            	while (number < 0 && fileIndex > 0) {	        	
+	    		        number++;
+	            		// counter is a parent, needed for write in transaction. The file index is part of the key
+	    		        keys.add(KeyFactory.createKey(counterKey, "jsondata", fileIndex));
+	    		        fileIndex--;
+	            	}
+	                counter.setUnindexedProperty("total_files", fileIndex);
+	                log.info(""+keys.size()+" datasets ready for delete. Last file index is now " + fileIndex);
+	            	datastore.put(counter);
+	                datastore.delete(keys);
             	}
-                counter.setUnindexedProperty("total_files", fileIndex);
-                log.info(jsondataList.size() + " datasets ready for commit. Last file index is " + fileIndex);
-            	datastore.put(counter);
-                datastore.put(jsondataList);
                 txn.commit();
         	} finally {
         		if (txn.isActive()) {

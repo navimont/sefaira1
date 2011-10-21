@@ -13,6 +13,7 @@ import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;	
 import java.lang.Float;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -29,6 +30,25 @@ import net.sf.jsr107cache.CacheException;
 import net.sf.jsr107cache.CacheFactory;
 import net.sf.jsr107cache.CacheManager;
 
+/**
+ * @author Stefan Wehner (2011)
+ *
+ * The class is responsible to serve lookup requests. It returns the 
+ * status of the background tasks and the results so far. Response
+ * is a JSON structure:
+ * {
+ *   "tasks": [ { "name":   <task name>
+ *                "status": <task status RUNNING|FINISHED>
+ *                "time":   <task run time>
+ *              }
+ *              ...
+ *            ]
+ *   "series": [ { "name": "<var1> vs. <var2>"
+ *                 "data": [[<value1_1>, <value2_1>] ... [<value1_n>, <value2_n>]]
+ *               ...
+ *             ]
+ * } 
+ */
 public class LookupServlet extends HttpServlet {
     private static final Logger log = Logger.getLogger(LookupServlet.class.getName());
    
@@ -38,8 +58,21 @@ public class LookupServlet extends HttpServlet {
     	Gson gson = new Gson();
     	String vartasks = "";
     	Map<String,Object> results = new HashMap<String,Object>();
+    	boolean tasks_active = false;
     	
-        Cache cache;
+    	// get variable names and range parameters from request
+    	String var1 = req.getParameter("var1");
+    	String var2 = req.getParameter("var2");  	
+    	if (var1 == null || var1.isEmpty()) {
+    		log.warning("var1 parameter is empty.");
+    		var1="";
+    	}
+    	if (var2 == null || var2.isEmpty()) {
+    		log.warning("var2 parameter is empty.");    		
+    		var2="";
+    	}
+
+    	Cache cache;
         try {
             CacheFactory cacheFactory = CacheManager.getInstance().getCacheFactory();
             cache = cacheFactory.createCache(Collections.emptyMap());
@@ -47,8 +80,9 @@ public class LookupServlet extends HttpServlet {
             log.severe("Failed to access memcache");
             return;
         }    	     		
-        if (cache.containsKey("vartasks")) {
-        	vartasks = (String) cache.get("vartasks");        	
+        String vartaskKey = "vartasks?var1="+var1+"&var2="+var2;
+        if (cache.containsKey(vartaskKey)) {
+        	vartasks = (String) cache.get(vartaskKey);        	
         }
 
 		// go through list of tasks and encode task status
@@ -58,6 +92,9 @@ public class LookupServlet extends HttpServlet {
 	        	Map<String,Object> taskstatus = new HashMap<String,Object>();
 				taskstatus.put("name", task);
 				log.info("Task: " + task + " status: " + cache.get(task) + " time: "+cache.get(task+"_time"));
+				if ("RUNNING".equals(cache.get(task))) {
+					tasks_active = true;
+				}
 				if (cache.containsKey(task)) {
 					taskstatus.put("status", cache.get(task));
 				} else {
@@ -71,33 +108,9 @@ public class LookupServlet extends HttpServlet {
 				tasklist.add(taskstatus);
 			}
         }
-		results.put("tasks", tasklist);
+    	results.put("tasks", tasklist);
+      	results.put("active", tasks_active);
 
-        // read current number of entities in datastore
-        DatastoreService datastore =  DatastoreServiceFactory.getDatastoreService();
-    	Entity counter;
-    	long fileIndex;
-		Key counterKey = KeyFactory.createKey("Counter", "filecounter");
-		try {
-			counter = datastore.get(counterKey);
-	    	fileIndex = (Long) counter.getProperty("total_files");			
-    	} catch (EntityNotFoundException e) {
-    		fileIndex = 0L;
-    	}         
-
-    	// get variable names and range parameters from request
-    	String var1 = req.getParameter("var1");
-    	String var2 = req.getParameter("var2");  	
-    	if (var1 == null || var1.isEmpty()) {
-    		log.warning("var1 parameter is empty.");    		
-    	}
-    	if (var2 == null || var2.isEmpty()) {
-    		log.warning("var2 parameter is empty.");    		
-    	}
-    	List<Object> vars = new LinkedList<Object>();
-    	vars.add(var1);
-    	vars.add(var2);
-    	results.put("vars", vars);
      	float var1_min = Float.MIN_VALUE;
         try {
         	 var1_min = Float.valueOf(req.getParameter("var1_min"));
@@ -120,30 +133,35 @@ public class LookupServlet extends HttpServlet {
         } catch (NullPointerException e) {}
     	            	
 		// go through memcache and collect results
-    	List<Object> data = new LinkedList<Object>();
-    	for (long file=1; file <= fileIndex; file++) {
-    		if (cache.containsKey("file"+file)) {
-    			Map<String,Float> varval = (Map) cache.get("file"+file);
-    			// check range
-    			if (varval.containsKey(var1) && varval.containsKey(var2)) {
-    				float val1 = (float) varval.get(var1);
-    				float val2 = (float) varval.get(var2);
+    	List<Object> series = new LinkedList<Object>();
+    	Map<String,Object> serie_map = new HashMap<String,Object>();
+    	serie_map.put("name", var1+" vs. "+var2);
+    	List<List> data = new LinkedList<List>();
+    	// go over the tasks and look in the cache for the batches they stored there
+    	for (String task : vartasks.split(", ")) {
+    		int batch_counter = 1;
+    		while (cache.containsKey(task+"_cache_"+batch_counter)) {
+    			List<List> cachedata = (List) cache.get(task+"_cache_"+batch_counter);
+    			// go over value pairs in the list and check range
+    			for (List<Float> pair : cachedata) {
+    				float val1 = (float) pair.get(0);
+    				float val2 = (float) pair.get(1);
     				if (val1 > var1_min && val1 < var1_max && val2 > var2_min && val2 < var2_max ) {
-    					List<Float> vv = new LinkedList<Float>();
-    					vv.add(val1);
-    					vv.add(val2);
-    					data.add(vv);
+    					// add pair to output list
+    					data.add(pair);
     				}
-    			}		
+    			}	
+    			batch_counter++;
     		}
     	}
-    	results.put("data", data);
+    	serie_map.put("data", data);
+    	series.add(serie_map);
+    	results.put("series", series);
     	
     	// encode result and go
         resp.setContentType("text/plain");
         resp.getWriter().println(gson.toJson(results));		
 		
-        // two less because that much space is used for the task status encoding
-		log.info("Returned " + (results.size()-2) + " result value pairs.");
+		log.info("Returned " + (data.size()) + " result value pairs.");
     }
 }
