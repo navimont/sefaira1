@@ -13,6 +13,41 @@
 var vardata_req = new XMLHttpRequest();
 var chart;
 var start;
+// the data to be rendered
+var series;
+
+function render () {
+    // draw chart
+	var var1 = {"text": $('select[name="var1"]').val()};
+	var var2 = {"text": $('select[name="var2"]').val()};
+	var var1_min = $('input[name="var1_min"]').val();
+	var var1_max = $('input[name="var1_max"]').val();
+	var var2_min = $('input[name="var2_min"]').val();
+	var var2_max = $('input[name="var2_max"]').val();
+    chart = new Highcharts.Chart({
+        chart: {
+           renderTo: 'chart-container',
+           defaultSeriesType: 'scatter',
+           zoomType: 'xy',
+           width: 760,
+           height: 400
+        },
+        title: {
+           text: 'Scatter plot of filtered data'
+        },
+        xAxis: {
+        	title: var1,
+        	min: var1_min,
+        	max: var1_max
+        },
+        yAxis: {
+        	title: var2,
+        	min: var2_min,
+        	max: var2_max
+        },
+    	series: series
+     });	
+}
 
 //callback for search result vardata on server
 function vardata_reply() {
@@ -35,32 +70,8 @@ function vardata_reply() {
             taskdata += "<tr colspan=\"3\">Browser time: "+ elapsed/1000 +" seconds since request started.</tr>";
             taskdata += "</table>";
             $('#task-list').html(taskdata);
-            // draw chart
-        	var var1 = {"text": $('select[name="var1"]').val()};
-        	var var2 = {"text": $('select[name="var2"]').val()};
-            chart = new Highcharts.Chart({
-                chart: {
-                   renderTo: 'chart-container',
-                   defaultSeriesType: 'scatter',
-                   zoomType: 'xy',
-                   width: 760,
-                   height: 400
-                },
-                title: {
-                   text: 'Scatter plot of filtered data'
-                },
-                xAxis: {
-                	title: var1,
-                	min: -55,
-                	max: 55
-                },
-                yAxis: {
-                	title: var2,
-                	min: -55,
-                	max: 55
-                },
-            	series: reply['series']
-             });	
+            series = reply['series'];
+            render();
             // enqueue call again if tasks haven't finished
             if (reply['active']) {
             	delayed_lookup();
@@ -96,6 +107,19 @@ function delayed_lookup(e) {
 	// set new timeout
 	lookup_timeout = setTimeout("vardata_request();", 500);
 }
+
+function render_on_return_key(event) {
+    if (event.keyCode == 13) {
+        render();
+    }
+}
+
+// send a get request to start a new search
+function search_request() {
+	$('#search-form').submit();
+    // form.submit();
+}
+
 
 function on_load() {
   	// take start time and send request for results

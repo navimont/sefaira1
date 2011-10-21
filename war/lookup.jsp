@@ -36,8 +36,8 @@
           });
       </script>
 
-
-    <h1>Lookup values in a specific range</h1>   
+	<div id="content">
+	    <h1>Lookup values in a specific range</h1>   
 <%
     DatastoreService datastore =  DatastoreServiceFactory.getDatastoreService();
 	Entity counter;
@@ -71,7 +71,7 @@
    	}
 %>
 
-  <form action="/lookup" method="get">
+  <form id="search-form" action="/lookup" method="get">
 	
 	  <h2>Specify variable names</h2>  
 	  
@@ -85,10 +85,11 @@
  }
 %>
 	    	</select>
-	    	in range from <input type="text" name="var1_min" value="<%= request.getParameter("var1_min") %>" onkeypress="delayed_lookup(event);">
-	    	to <input type="text" name="var1_max" value="<%= request.getParameter("var1_max") %>" onkeypress="delayed_lookup(event);">
+	    	in range from <input type="text" name="var1_min" value="<%= request.getParameter("var1_min") %>" onkeypress="render_on_return_key(event);">
+	    	to <input type="text" name="var1_max" value="<%= request.getParameter("var1_max") %>" onkeypress="render_on_return_key(event);">
 	    </div>
 	    
+    
 	    <div>
 	    	Search for variable <select name="var2" size="1" value="">
 <%
@@ -99,8 +100,8 @@
  }
 %>
 	    	</select>
-	    	in range from <input type="text" name="var2_min" value="<%= request.getParameter("var2_min") %>" onkeypress="delayed_lookup(event);">
-	    	to <input type="text" name="var2_max" value="<%= request.getParameter("var2_max") %>" onkeypress="delayed_lookup(event);">
+	    	in range from <input type="text" name="var2_min" value="<%= request.getParameter("var2_min") %>" onkeypress="render_on_return_key(event);">
+	    	to <input type="text" name="var2_max" value="<%= request.getParameter("var2_max") %>" onkeypress="render_on_return_key(event);">
 	    </div>
 	    
 	 <p>Search through <%= fileIndex %> datasets using 
@@ -115,19 +116,22 @@
 %>
 	  	</select>
 	  parallel tasks.</p>
-	  
-	    <div><input type="submit" value="Start search" /></div>
-  </form>
-    
-  <div id="chart-container" style="width: 700px; height: 400px">
-  </div>
+	  		<div class="button-box">
+			    <div><a class="button-left" href="javascript:void(0)" onClick="$('#search-form').submit();">new search</a></div>
+			    <div><a class="button-right" href="javascript:void(0)" onClick="render();">redraw</a></div>
+			</div>
+	  </form>
+	    
+	  <div id="chart-container" style="width: 700px; height: 400px">
+	  </div>
+	
+	  <div id="task-list">
+	  <p>We are looking for your data...</p>
+	  </div>
+	
+	  <p>Click here to <a href="/generate">generate more data.</a></p>
+	  <div id="vardata-link"></div>
 
-  <div id="task-list">
-  <p>We are looking for your data...</p>
-  </div>
-
-  <p>Click here to <a href="/generate">generate more data.</a></p>
-  <div id="vardata-link"></div>
-
+	</div>
   </body>
 </html>

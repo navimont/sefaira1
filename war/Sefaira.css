@@ -1,0 +1,128 @@
+/*	Less Framework 4
+	http://lessframework.com
+	by Joni Korpi
+	License: http://opensource.org/licenses/mit-license.php	*/
+
+
+/*	Resets
+	------	*/
+
+html, body, div, span, object, iframe, h1, h2, h3, h4, h5, h6,
+p, blockquote, pre, a, abbr, address, cite, code, del, dfn, em,
+img, ins, kbd, q, samp, small, strong, sub, sup, var, b, i, hr,
+dl, dt, dd, ol, ul, li, fieldset, form, label, legend,
+table, caption, tbody, tfoot, thead, tr, th, td,
+article, aside, canvas, details, figure, figcaption, hgroup,
+menu, footer, header, nav, section, summary, time, mark, audio, video {
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+
+article, aside, canvas, figure, figure img, figcaption, hgroup,
+footer, header, nav, section, audio, video {
+	display: block;
+}
+
+a img {border: 0;}
+
+
+
+/*	Typography presets
+	------------------	*/
+
+.gigantic {
+	font-size: 68px;
+	line-height: 70px;
+	letter-spacing: -1px;
+}
+
+.huge, h1 {
+	font-size: 40px;
+	line-height: 42px;
+}
+
+.large, h2 {
+	font-size: 24px;
+	line-height: 30px;
+}
+
+.bigger, h3 {
+	font-size: 18px;
+	line-height: 24px;
+}
+
+.big, h4 {
+	font-size: 14px;
+	line-height: 16px;
+}
+
+body {
+	font: 17px/19px Palatino, Constantia, "Palatino Linotype", serif;
+}
+
+.small, small {
+	font-size: 12px;
+	line-height: 13px;
+}
+
+.error {
+  border: 2px solid red;
+	text-align: center;
+  width: 480px;
+}
+
+/* Selection colours (easy to forget) */
+
+::selection 	 	{background: rgb(255,255,158);}
+::-moz-selection 	{background: rgb(255,255,158);}
+img::selection 		{background: transparent;}
+img::-moz-selection	{background: transparent;}
+body {-webkit-tap-highlight-color: rgb(255,255,158);}
+
+/*
+* Extensions for take2map: Stefan Wehner (2011)
+*/
+
+html, body, #map-full
+{
+    height: 100%;
+}
+
+body {
+    padding: 0;
+    margin: 0;
+    background-color: #CCCCCC;
+    color: #3D3D3D;
+}
+
+
+/*
+ * content pages
+ */
+
+#content {
+    padding-top: 5px;
+    margin-left: 130px;
+}
+
+.button-box {
+	width: 200px;
+	height: 40px;
+	padding-top: 20px;
+}
+
+.button, .button-left, .button-right {
+  background-color: #668CFF;
+  color: #E5ECFF;
+  padding: 5px;
+}
+
+.button-left {
+	float: left;
+}
+
+.button-right {
+	float: right;
+}
+

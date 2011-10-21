@@ -143,14 +143,7 @@ public class LookupServlet extends HttpServlet {
     		while (cache.containsKey(task+"_cache_"+batch_counter)) {
     			List<List> cachedata = (List) cache.get(task+"_cache_"+batch_counter);
     			// go over value pairs in the list and check range
-    			for (List<Float> pair : cachedata) {
-    				float val1 = (float) pair.get(0);
-    				float val2 = (float) pair.get(1);
-    				if (val1 > var1_min && val1 < var1_max && val2 > var2_min && val2 < var2_max ) {
-    					// add pair to output list
-    					data.add(pair);
-    				}
-    			}	
+    			data.addAll(cachedata);
     			batch_counter++;
     		}
     	}
